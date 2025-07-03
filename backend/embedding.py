@@ -1,21 +1,23 @@
-# backend/embedding.py
+# backend/embedding.py (cập nhật)
 import faiss
 import numpy as np
+import pandas as pd
 import os
 from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer("intfloat/e5-small-v2")
+# Mô hình cực nhanh, dùng tốt cho semantic search
+model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
-def row_to_string(row):
-    return " | ".join([f"{col}: {str(val)}" for col, val in row.items()])
+def row_to_string(row, max_words=100):
+    """Cắt ngắn input để tăng tốc"""
+    text = " | ".join([f"{col}: {str(val)}" for col, val in row.items()])
+    return " ".join(text.split()[:max_words])  # Giới hạn 100 từ
 
-def generate_embeddings(df, batch_size=32, max_rows=None):
+def generate_embeddings(df, batch_size=64, max_rows=None):
     if max_rows:
         df = df.head(max_rows)
 
     texts = df.apply(row_to_string, axis=1).tolist()
-    texts = [f"passage: {t}" for t in texts]
-
     embeddings = model.encode(
         texts,
         batch_size=batch_size,
