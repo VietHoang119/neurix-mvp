@@ -3,6 +3,6 @@ pandas
 openai
 python-dotenv
 qdrant-client
-faiss-cpu
 sentence-transformers
+faiss-cpu
 
