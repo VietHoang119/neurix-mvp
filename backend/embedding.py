@@ -1,39 +1,27 @@
 # backend/embedding.py
-import pandas as pd
 import faiss
 import numpy as np
-from openai import OpenAI
-from dotenv import load_dotenv
 import os
+from sentence_transformers import SentenceTransformer
 
-# Load API key
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-# Cấu hình OpenAI
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Tải mô hình embedding DeepSeek
+model = SentenceTransformer("deepseek-ai/deepseek-embedding-v2")
 
 def row_to_string(row):
-    """Ghép các cột thành một câu mô tả dòng dữ liệu"""
+    """Ghép thông tin dòng thành 1 chuỗi mô tả ngữ nghĩa"""
     return " | ".join([f"{col}: {str(val)}" for col, val in row.items()])
 
-def get_embedding(text):
-    """Gửi đoạn text đến OpenAI để lấy embedding"""
-    response = client.embeddings.create(
-        input=text,
-        model="text-embedding-3-small"
-    )
-    return response.data[0].embedding
-
 def generate_embeddings(df):
-    """Tạo danh sách embedding cho từng dòng trong DataFrame"""
-    sentences = df.apply(row_to_string, axis=1).tolist()
-    embeddings = [get_embedding(text) for text in sentences]
+    """Tạo vector embedding từ từng dòng dữ liệu"""
+    texts = df.apply(row_to_string, axis=1).tolist()
+    embeddings = model.encode(texts, show_progress_bar=True)
     return np.array(embeddings).astype("float32")
 
 def save_faiss_index(embeddings, index_path="models/faiss_index.index"):
-    """Lưu các embedding vào FAISS index"""
+    """Lưu các vectors vào FAISS index"""
     dim = embeddings.shape[1]
     index = faiss.IndexFlatL2(dim)
     index.add(embeddings)
+
+    os.makedirs(os.path.dirname(index_path), exist_ok=True)
     faiss.write_index(index, index_path)
