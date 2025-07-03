@@ -1,54 +1,42 @@
+# app.py
 import streamlit as st
 import pandas as pd
-import os
-
-from backend.embedding import generate_embeddings, save_faiss_index
-from backend.query_engine import get_top_matches
+from backend.embedding import generate_embeddings, build_faiss_index
+from backend.query_engine import search_index
 
 st.set_page_config(page_title="Neurix MVP", layout="wide")
-st.title("🧠 Neurix Memory Engine - MVP")
+st.title("🧠 Neurix Memory Engine - In-Memory MVP")
 
-uploaded_file = st.file_uploader("📁 Tải lên file dữ liệu (.csv hoặc .xlsx)", type=["csv", "xlsx"])
-
-# Bảo lưu df vào session_state
-if uploaded_file and "df" not in st.session_state:
+# 1. Upload & load data
+uploaded = st.file_uploader("📁 Upload CSV/XLSX", type=["csv","xlsx"])
+if uploaded and "df" not in st.session_state:
     try:
-        if uploaded_file.name.endswith(".csv"):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
-        st.session_state["df"] = df
+        st.session_state.df = (
+            pd.read_csv(uploaded) if uploaded.name.endswith(".csv")
+            else pd.read_excel(uploaded)
+        )
     except Exception as e:
-        st.error(f"❌ Lỗi khi đọc file: {e}")
+        st.error(f"❌ Lỗi đọc file: {e}")
 
-# Lấy lại df
-df = st.session_state.get("df", None)
-
+df = st.session_state.get("df")
 if df is not None:
-    st.success("✅ File đã được tải lên thành công!")
-    st.subheader("📌 Thông tin tổng quan:")
-    st.write(f"Số dòng: {df.shape[0]} | Số cột: {df.shape[1]}")
-    st.dataframe(df.head(10))
+    st.success(f"File đã load: {df.shape[0]} rows × {df.shape[1]} cols")
+    st.dataframe(df.head(5))
 
-    if st.button("🔎 Phân tích & Lưu FAISS Index"):
-        with st.spinner("🔄 Đang sinh embedding và lưu index..."):
-            embeddings = generate_embeddings(df, max_rows=500)
-            save_faiss_index(embeddings)
+    # 2. Build in-memory FAISS index
+    if st.button("🚀 Build Semantic Memory"):
+        with st.spinner("Đang embedding & build index..."):
+            embs = generate_embeddings(df, max_rows=500)  # cho MVP chỉ embed 500 dòng đầu
+            idx = build_faiss_index(embs)
+            st.session_state.faiss_idx = idx
+            st.success(f"✅ Tạo xong index với {idx.ntotal} vectors")
 
-        if os.path.exists("models/faiss_index.index"):
-            st.success("✅ Đã lưu FAISS index tại models/faiss_index.index")
-        else:
-            st.warning("⚠️ Chưa tạo được FAISS index. Kiểm tra log!")
-
-# Truy vấn nếu có df và FAISS index
-if df is not None and os.path.exists("models/faiss_index.index"):
-    st.subheader("💬 Truy vấn ngữ nghĩa")
-    query = st.text_input("Hỏi dữ liệu bằng tiếng Việt:")
-
-    if query:
-        try:
-            results = get_top_matches(df, query)
-            st.write(f"✅ Tìm thấy {len(results)} dòng phù hợp:")
-            st.dataframe(results)
-        except Exception as e:
-            st.error(f"❌ Lỗi khi truy vấn: {e}")
+# 3. Query
+if "faiss_idx" in st.session_state:
+    st.subheader("💬 Semantic Query")
+    q = st.text_input("Hỏi (VN):")
+    if q:
+        with st.spinner("Đang tìm kết quả..."):
+            res = search_index(st.session_state.df, st.session_state.faiss_idx, q, top_k=5)
+        st.write("Kết quả top 5:")
+        st.dataframe(res)
