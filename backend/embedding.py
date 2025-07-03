@@ -1,17 +1,13 @@
-# backend/embedding.py (cập nhật)
 import faiss
 import numpy as np
-import pandas as pd
 import os
 from sentence_transformers import SentenceTransformer
 
-# Mô hình cực nhanh, dùng tốt cho semantic search
 model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
 def row_to_string(row, max_words=100):
-    """Cắt ngắn input để tăng tốc"""
     text = " | ".join([f"{col}: {str(val)}" for col, val in row.items()])
-    return " ".join(text.split()[:max_words])  # Giới hạn 100 từ
+    return " ".join(text.split()[:max_words])
 
 def generate_embeddings(df, batch_size=64, max_rows=None):
     if max_rows:
@@ -34,3 +30,4 @@ def save_faiss_index(embeddings, index_path="models/faiss_index.index"):
 
     os.makedirs(os.path.dirname(index_path), exist_ok=True)
     faiss.write_index(index, index_path)
+    print(f"✅ FAISS index saved to: {index_path}")
