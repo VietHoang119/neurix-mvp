@@ -1,3 +1,4 @@
+# backend/embedding.py
 import faiss
 import numpy as np
 import os
@@ -23,11 +24,14 @@ def generate_embeddings(df, batch_size=64, max_rows=None):
     )
     return embeddings.astype("float32")
 
-def save_faiss_index(embeddings, index_path="models/faiss_index.index"):
+def build_faiss_index(embeddings):
+    """Xây dựng và trả về FAISS index trong memory (không cần lưu file)"""
     dim = embeddings.shape[1]
     index = faiss.IndexFlatL2(dim)
     index.add(embeddings)
+    return index
 
+def save_faiss_index_to_file(index, index_path="models/faiss_index.index"):
+    """Nếu bạn vẫn muốn lưu ra file, có thể gọi thêm hàm này."""
     os.makedirs(os.path.dirname(index_path), exist_ok=True)
     faiss.write_index(index, index_path)
-    print(f"✅ FAISS index saved to: {index_path}")
