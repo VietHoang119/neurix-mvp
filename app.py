@@ -34,6 +34,11 @@ if uploaded_file:
     except Exception as e:
         st.error(f"❌ Lỗi khi xử lý file: {e}")
 
+if os.path.exists("models/faiss_index.index"):
+    st.success("📁 FAISS index đã được lưu!")
+else:
+    st.warning("⚠️ Không tìm thấy FAISS index. Hãy kiểm tra log hoặc lưu lại.")
+
 # Truy vấn nếu đã có dữ liệu và index
 if df is not None and os.path.exists("models/faiss_index.index"):
     st.subheader("💬 Truy vấn ngữ nghĩa")
