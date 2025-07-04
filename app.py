@@ -31,6 +31,9 @@ if df is not None:
             st.session_state.faiss_idx = idx
         st.success(f"✅ Index built with {idx.ntotal} vectors")
 
+st.session_state.faiss_idx = idx
+st.write("🔑 session_state keys:", list(st.session_state.keys()))
+
 # 3. Semantic Query (sẽ chỉ hiện khi đã build xong)
 if "faiss_idx" in st.session_state:
     st.subheader("💬 Semantic Query")
